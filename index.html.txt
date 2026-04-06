@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>‰Ÿ«„  ”ÃÌ· «·ÿ·«» - PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2c7da0">
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #f0f4f8; margin: 0; padding: 20px; }
+    .container { max-width: 700px; margin: auto; background: white; border-radius: 28px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+    h1 { font-size: 1.6rem; color: #1f5068; text-align: center; margin-bottom: 20px; }
+    label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; color: #2c3e50; }
+    select, input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 16px; font-size: 1rem; background: #fff; }
+    .row2 { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row2 > div { flex: 1; min-width: 120px; }
+    button { background: #2c7da0; color: white; border: none; padding: 14px; width: 100%; border-radius: 40px; font-size: 1.2rem; margin-top: 25px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    button:active { background: #1f5068; }
+    .bmi-result { background: #e9f5e9; padding: 12px; border-radius: 20px; margin-top: 15px; text-align: center; font-weight: bold; }
+    .status { background: #fff3cd; padding: 10px; border-radius: 16px; margin-top: 15px; text-align: center; font-size: 0.9rem; }
+    hr { margin: 20px 0; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>??  ”ÃÌ· »Ì«‰«  «·ÿ·«»</h1>
+
+  <label>??? «·ÊÕœ…</label>
+  <select id="unit"></select>
+
+  <label>?? ‰Ê⁄ «·„œ—”…</label>
+  <select id="schoolType">
+    <option value="⁄«„">⁄«„</option>
+    <option value="√“Â—">√“Â—</option>
+  </select>
+
+  <label>?? «”„ «·„œ—”…</label>
+  <select id="schoolName"></select>
+
+  <label>?? «·’›</label>
+  <select id="grade">
+    <option value="«·’› «·«Ê·">«·’› «·«Ê·</option><option value="«·’› «·À«‰Ì">«·’› «·À«‰Ì</option>
+    <option value="«·’› «·À«·À">«·’› «·À«·À</option><option value="«·’› «·—«»⁄">«·’› «·—«»⁄</option>
+    <option value="«·’› «·Œ«„”">«·’› «·Œ«„”</option><option value="«·’› «·”«œ”">«·’› «·”«œ”</option>
+  </select>
+
+  <label>??û?? «”„ «·ÿ«·» («» œ«¡ »ﬂ «»… Õ—›)</label>
+  <input type="text" id="studentName" list="studentList" placeholder="«ﬂ » «”„ «·ÿ«·»...">
+  <datalist id="studentList"></datalist>
+
+  <div class="row2">
+    <div><label>?? «·—ﬁ„ «·ﬁÊ„Ì</label><input type="text" id="nationalId"></div>
+    <div><label>? «·‰Ê⁄</label><select id="gender"><option>–ﬂ—</option><option>√‰ÀÏ</option></select></div>
+    <div><label>??  «—ÌŒ «·„Ì·«œ</label><input type="date" id="birthDate"></div>
+  </div>
+
+  <label>??  ·Ì›Ê‰ Ê·Ì «·√„—</label>
+  <input type="tel" id="parentPhone">
+
+  <div class="row2">
+    <div><label>?? «·ÿÊ· (”„)</label><input type="number" id="height" step="0.1"></div>
+    <div><label>?? «·Ê“‰ (ﬂÃ„)</label><input type="number" id="weight" step="0.1"></div>
+    <div><label>?? «·ÂÌ„ÊÃ·Ê»Ì‰</label><input type="number" id="hemoglobin" step="0.1"></div>
+  </div>
+
+  <div class="bmi-result" id="bmiDisplay">„ƒ‘— ﬂ ·… «·Ã”„: ---</div>
+  <div class="status" id="syncStatus">?? Ã«Â“ ·· ”ÃÌ·</div>
+  <button id="saveBtn">?? Õ›Ÿ «·»Ì«‰« </button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

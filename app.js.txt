@@ -1,0 +1,320 @@
+// ==================== CONFIGURATION ====================
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3__NbQiGHz6dWU5-I8dPNikO2kqD7TRGnbAS7CIe1BvpvbfaRkm4o9DEB7LkxMOrl/exec'; // ?? REPLACE WITH YOUR WEB APP URL
+
+// ==================== EMBEDDED SCHOOL DATA (from your Excel) ====================
+const schoolsData = [
+  { unit: "”ﬁ«—…", type: "⁄«„", name: "”ﬁ«—… «·«» œ«∆Ì… «·„‘ —ﬂÂ" },
+  { unit: "”ﬁ«—…", type: "⁄«„", name: "«·ÊÕœ… «·„Õ·Ì… «·«» œ«∆Ì… »”ﬁ«—…" },
+  { unit: "”ﬁ«—…", type: "⁄«„", name: "ÊÕœ… ”ﬁ«—… «·«» œ«∆Ì…" },
+  { unit: "”ﬁ«—…", type: "⁄«„", name: "Œ·Ì· «··„⁄Ì «·«» œ«∆Ì… »”ﬁ«—…" },
+  { unit: "”ﬁ«—…", type: "⁄«„", name: "«·‘«›⁄Ì «·«» œ«∆Ì… «·Œ«’…" },
+  { unit: "”ﬁ«—…", type: "√“Â—", name: "„⁄Âœ «·«„«„ ⁄·Ì «·«» œ«∆Ì" },
+  { unit: "„‰‘√… œÂ‘Ê—", type: "⁄«„", name: "„‰‘√… œÂ‘Ê— «·„‘ —ﬂÂ" },
+  { unit: "„‰‘√… œÂ‘Ê—", type: "⁄«„", name: "„‰‘√… œÂ‘Ê— «·«» œ«∆Ì… »‰Ì‰" },
+  { unit: "„‰‘√… œÂ‘Ê—", type: "⁄«„", name: "Œ«·œ »‰ «·Ê·Ìœ «·«» œ«∆Ì…" },
+  { unit: "„‰‘√… œÂ‘Ê—", type: "√“Â—", name: "„⁄Âœ «»Ê «·⁄“«Ì„ «·«» œ«∆Ì" },
+  { unit: "„Ì  —ÂÌ‰Â", type: "⁄«„", name: "œ.„Õ„œ —÷Ê«‰ «·«» œ«∆Ì" },
+  { unit: "„Ì  —ÂÌ‰Â", type: "⁄«„", name: "„Ì  —ÂÌ‰Â «·«» œ«∆Ì… «·„‘ —ﬂÂ" },
+  { unit: "„Ì  —ÂÌ‰Â", type: "⁄«„", name: "«·Ã«»—Ì «·«» œ«∆Ì… «·„‘ —ﬂÂ" },
+  { unit: "„Ì  —ÂÌ‰Â", type: "⁄«„", name: "«·ŒÿÌ» «·Œ«’… «·«» œ«∆Ì…" },
+  { unit: "„Ì  —ÂÌ‰Â", type: "√“Â—", name: "„⁄Âœ „Ì  —ÂÌ‰Â «·«» œ«∆Ì" },
+  { unit: "«·ÿ—›«Ì…", type: "⁄«„", name: "”Ìœ «·—Ê»Ì «·«» œ«∆Ì…" },
+  { unit: "«·ÿ—›«Ì…", type: "⁄«„", name: "«·ÿ—›«Ì… «·«» œ«∆Ì…" },
+  { unit: "«»Ê—ÃÊ«‰ »Õ—Ì", type: "⁄«„", name: "«»Ê—ÃÊ«‰ »Õ—Ì «·«» œ«∆Ì…" },
+  { unit: "«»Ê—ÃÊ«‰ »Õ—Ì", type: "⁄«„", name: "⁄·Ì ⁄»œ«·ÃÊ«œ «·«» œ«∆Ì…" },
+  { unit: "«»Ê—ÃÊ«‰ »Õ—Ì", type: "⁄«„", name: "«·”«œ«  «·«» œ«∆Ì…" },
+  { unit: "«·‘‰»«»", type: "⁄«„", name: "«·“Â—«¡ «·«» œ«∆Ì…" },
+  { unit: "«·‘‰»«»", type: "⁄«„", name: "⁄·Ì »‰ «»Ì ÿ«·»" },
+  { unit: "«·‘‰»«»", type: "√“Â—", name: "„⁄Âœ «·‘‰»«» «·«» œ«∆Ì" },
+  { unit: "«·„—«“Ìﬁ", type: "⁄«„", name: "ﬁ·⁄… «·„—«“Ìﬁ «·«» œ«∆Ì…" },
+  { unit: "«·„—«“Ìﬁ", type: "⁄«„", name: "⁄—» «·„—«“Ìﬁ «·«» œ«∆Ì…" },
+  { unit: "«·„—«“Ìﬁ", type: "⁄«„", name: "‰Ê— «·⁄·„ «·«» œ«∆Ì…" },
+  { unit: "«·„—«“Ìﬁ", type: "⁄«„", name: "«·„—«“Ìﬁ «·«» œ«∆Ì…" },
+  { unit: "œÂ‘Ê—", type: "⁄«„", name: "«·”·«„ «·«» œ«∆Ì…" },
+  { unit: "œÂ‘Ê—", type: "⁄«„", name: "«·‘ÂÌœ „Õ„Êœ ⁄»œ«·‘«›Ì" },
+  { unit: "‰“·… «·‘Ê»ﬂ", type: "⁄«„", name: "‘Âœ«¡ ‰“·… «·‘Ê»ﬂ" },
+  { unit: "‰“·… «·‘Ê»ﬂ", type: "√“Â—", name: "„⁄Âœ ‰“·… «·‘Ê»ﬂ «·«» œ«∆Ì" },
+  { unit: "ﬂ›— “Â—«‰", type: "⁄«„", name: "«·ÊÕœ… «·„Ã„⁄Â »«·„—«“Ìﬁ" },
+  { unit: "ﬂ›— “Â—«‰", type: "⁄«„", name: "«·ÊÕœ… «·„Õ·Ì… «·«» œ«∆Ì… »ﬂ›— “Â—«‰" },
+  { unit: "ﬂ›— “Â—«‰", type: "√“Â—", name: "„⁄Âœ «·„—«“Ìﬁ «·«» œ«∆Ì" },
+  { unit: "ﬂ›— “Â—«‰", type: "⁄«„", name: "‘—Ì› ⁄‰«‰Ì «·«» œ«∆Ì…" },
+  { unit: "„“€Ê‰Â", type: "⁄«„", name: "„“€Ê‰Â «·«» œ«∆Ì… «·„‘ —ﬂÂ" },
+  { unit: "„“€Ê‰Â", type: "⁄«„", name: "«· Õ—Ì— «·«» œ«∆Ì…" },
+  { unit: "„“€Ê‰Â", type: "√“Â—", name: "„⁄Âœ «·—Õ„Â «·«“Â—Ì «·«» œ«∆Ì" },
+  { unit: "„“€Ê‰Â", type: "⁄«„", name: "⁄„— »‰ «·Œÿ«» «·«» œ«∆Ì… «·Œ«’…" },
+  { unit: "«·⁄“Ì“Ì…", type: "⁄«„", name: "«·⁄“Ì“Ì… «·«» œ«∆Ì…" },
+  { unit: "«·⁄“Ì“Ì…", type: "⁄«„", name: "«·«„«„ „Õ„œ ⁄»œÂ" },
+  { unit: "«·⁄“Ì“Ì…", type: "⁄«„", name: "„Õ„œ ›—Ìœ «·«» œ«∆Ì…" },
+  { unit: "«·⁄“Ì“Ì…", type: "⁄«„", name: "«Õ„œ ”«·„«‰  €Ì«‰ «·«» œ«∆Ì…" },
+  { unit: "«·⁄“Ì“Ì…", type: "√“Â—", name: "«·„⁄Âœ «·œÌ‰Ì «·«» œ«∆Ì" },
+  { unit: "«·⁄“Ì“Ì…", type: "⁄«„", name: "«·«Ì„«‰ «·«» œ«∆Ì" },
+  { unit: "«»Ê’Ì—", type: "⁄«„", name: "«·‘ÂÌœ ⁄»œ«·ÕﬂÌ„ ’«»—" },
+  { unit: "«»Ê’Ì—", type: "⁄«„", name: "Œ·Ì· «··„⁄Ì «·«» œ«∆Ì… »«»Ê’Ì—" },
+  { unit: "«»Ê’Ì—", type: "⁄«„", name: "⁄»œ«·„ÊÃÊœ ⁄ÊÌ«‰ «·«» œ«∆Ì…" },
+  { unit: "«»Ê’Ì—", type: "√“Â—", name: "„⁄Âœ «»Ê’Ì— «·«» œ«∆Ì" },
+  { unit: "«»Ê’Ì—", type: "√“Â—", name: "„⁄Âœ «·‘ÌŒ ⁄·Ì«‰ «·«» œ«∆Ì" },
+  { unit: "“«ÊÌ… œÂ‘Ê—", type: "⁄«„", name: "“«ÊÌ… œÂ‘Ê— «·«» œ«∆Ì…" },
+  { unit: "“«ÊÌ… œÂ‘Ê—", type: "√“Â—", name: "„⁄Âœ “«ÊÌ… œÂ‘Ê— «·«» œ«∆Ì" },
+  { unit: "«»Ê—ÃÊ«‰ ﬁ»·Ì", type: "⁄«„", name: "⁄ﬂ«‘… Ê Õ”‰ «·œÌ» «·«» œ«∆Ì…" },
+  { unit: "«»Ê—ÃÊ«‰ ﬁ»·Ì", type: "⁄«„", name: "«·”Ìœ ”·Ì„«‰ «·«» œ«∆Ì…" },
+  { unit: "«»Ê—ÃÊ«‰ ﬁ»·Ì", type: "⁄«„", name: "⁄»œ«·„‰⁄„ »œÊÌ «·«» œ«∆Ì…" },
+  { unit: "«»Ê—ÃÊ«‰ ﬁ»·Ì", type: "√“Â—", name: "„⁄Âœ ”·Ì„«‰ «·«» œ«∆Ì" },
+  { unit: "«·‘Ê»ﬂ «·€—»Ì", type: "⁄«„", name: "ÊÕœ… «·‘Ê»ﬂ «·«» œ«∆Ì…" },
+  { unit: "«·‘Ê»ﬂ «·€—»Ì", type: "⁄«„", name: "«·‰«’— «·«» œ«∆Ì…" },
+  { unit: "«·‘Ê»ﬂ «·€—»Ì", type: "⁄«„", name: "⁄»œ«·› «Õ ‰«’— «·«» œ«∆Ì…" },
+  { unit: "«·‘Ê»ﬂ «·€—»Ì", type: "⁄«„", name: "«· Õ›ÌŸ «·«» œ«∆Ì…" },
+  { unit: "«·‘Ê»ﬂ «·€—»Ì", type: "√“Â—", name: "„⁄Âœ ⁄»œ«·—Õ„‰ ⁄“«„ «·«» œ«∆Ì" },
+  { unit: "«·‘Ê»ﬂ «·€—»Ì", type: "⁄«„", name: "’·«Õ €—Ì» «·«» œ«∆Ì…" },
+  { unit: "„‰‘√… ﬂ«”»", type: "⁄«„", name: "„‰‘√… ﬂ«”» «·«» œ«∆Ì… «·„‘ —ﬂÂ" }
+];
+
+// Unique units (17)
+const units = [...new Map(schoolsData.map(s => [s.unit, s.unit])).values()];
+
+// ==================== INDEXEDDB SETUP ====================
+let db;
+const DB_NAME = 'StudentSyncDB';
+const STORE_NAME = 'pendingRecords';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      db = request.result;
+      resolve(db);
+    };
+    request.onupgradeneeded = (e) => {
+      const store = e.target.result.createObjectStore(STORE_NAME, { autoIncrement: true });
+      store.createIndex('synced', 'synced');
+    };
+  });
+}
+
+async function addPendingRecord(record) {
+  if (!db) await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.add({ ...record, synced: false, timestamp: Date.now() });
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getAllPendingRecords() {
+  if (!db) await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const index = store.index('synced');
+    const req = index.getAll(IDBKeyRange.only(false));
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function markRecordAsSynced(id) {
+  if (!db) await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const getReq = store.get(id);
+    getReq.onsuccess = () => {
+      const record = getReq.result;
+      if (record) {
+        record.synced = true;
+        store.put(record);
+      }
+      resolve();
+    };
+    getReq.onerror = reject;
+  });
+}
+
+async function deleteRecord(id) {
+  if (!db) await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).delete(id);
+    tx.oncomplete = resolve;
+    tx.onerror = reject;
+  });
+}
+
+// ==================== SYNC TO GOOGLE SHEETS ====================
+async function syncPendingRecords() {
+  const pending = await getAllPendingRecords();
+  if (!pending.length) return;
+  for (let rec of pending) {
+    try {
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors', // simpler but doesn't return JSON; alternative: use cors + proper CORS on Apps Script
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rec.data)
+      });
+      // If using 'no-cors', we can't read response, assume success.
+      await markRecordAsSynced(rec.id);
+      showStatus(`?  „ „“«„‰…: ${rec.data.studentName}`, '#d4edda');
+    } catch (err) {
+      console.warn('Sync failed', err);
+      showStatus(`?? ·« ÌÊÃœ « ’«· ñ ”Ì „ «·Õ›Ÿ ·«Õﬁ«`, '#fff3cd');
+    }
+  }
+  // Clean up synced records after sync
+  const dbSync = await openDB();
+  const tx = dbSync.transaction(STORE_NAME, 'readwrite');
+  const store = tx.objectStore(STORE_NAME);
+  const index = store.index('synced');
+  const syncedRecords = await index.getAll(IDBKeyRange.only(true));
+  for (let r of syncedRecords) {
+    await store.delete(r.id);
+  }
+}
+
+// ==================== STUDENT AUTOCOMPLETE (LocalStorage) ====================
+function getStudentProfile(name) {
+  const profiles = JSON.parse(localStorage.getItem('studentProfiles') || '{}');
+  return profiles[name];
+}
+
+function saveStudentProfile(name, nationalId, gender, birthDate, parentPhone) {
+  const profiles = JSON.parse(localStorage.getItem('studentProfiles') || '{}');
+  profiles[name] = { nationalId, gender, birthDate, parentPhone };
+  localStorage.setItem('studentProfiles', JSON.stringify(profiles));
+  updateDatalist();
+}
+
+function updateDatalist() {
+  const profiles = JSON.parse(localStorage.getItem('studentProfiles') || '{}');
+  const datalist = document.getElementById('studentList');
+  datalist.innerHTML = '';
+  Object.keys(profiles).forEach(name => {
+    const option = document.createElement('option');
+    option.value = name;
+    datalist.appendChild(option);
+  });
+}
+
+// ==================== FORM HANDLERS ====================
+function populateUnits() {
+  const unitSelect = document.getElementById('unit');
+  unitSelect.innerHTML = '<option value="">-- «Œ — «·ÊÕœ… --</option>';
+  units.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u;
+    opt.textContent = u;
+    unitSelect.appendChild(opt);
+  });
+}
+
+function filterSchools() {
+  const unit = document.getElementById('unit').value;
+  const type = document.getElementById('schoolType').value;
+  const schoolSelect = document.getElementById('schoolName');
+  schoolSelect.innerHTML = '<option value="">-- «Œ — «·„œ—”… --</option>';
+  if (!unit) return;
+  const filtered = schoolsData.filter(s => s.unit === unit && s.type === type);
+  filtered.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.name;
+    opt.textContent = s.name;
+    schoolSelect.appendChild(opt);
+  });
+}
+
+function calculateBMI() {
+  const weight = parseFloat(document.getElementById('weight').value);
+  const heightCm = parseFloat(document.getElementById('height').value);
+  if (weight > 0 && heightCm > 0) {
+    const heightM = heightCm / 100;
+    const bmi = weight / (heightM * heightM);
+    document.getElementById('bmiDisplay').innerHTML = `?? „ƒ‘— ﬂ ·… «·Ã”„: ${bmi.toFixed(1)} (${bmi < 18.5 ? '‰ﬁ’ Ê“‰' : bmi < 25 ? 'ÿ»Ì⁄Ì' : bmi < 30 ? '“Ì«œ… Ê“‰' : '”„‰…'})`;
+    return bmi.toFixed(1);
+  }
+  document.getElementById('bmiDisplay').innerHTML = '?? „ƒ‘— ﬂ ·… «·Ã”„: ---';
+  return null;
+}
+
+function showStatus(msg, bg) {
+  const statusDiv = document.getElementById('syncStatus');
+  statusDiv.innerHTML = msg;
+  statusDiv.style.backgroundColor = bg;
+  setTimeout(() => {
+    if (navigator.onLine) statusDiv.innerHTML = '?? „ ’· Ê „  «·„“«„‰…';
+    else statusDiv.innerHTML = '?? €Ì— „ ’· ñ «·»Ì«‰«  „Õ›ÊŸ… „Õ·Ì«';
+  }, 3000);
+}
+
+document.getElementById('studentName').addEventListener('input', (e) => {
+  const name = e.target.value;
+  const profile = getStudentProfile(name);
+  if (profile) {
+    document.getElementById('nationalId').value = profile.nationalId || '';
+    document.getElementById('gender').value = profile.gender || '–ﬂ—';
+    document.getElementById('birthDate').value = profile.birthDate || '';
+    document.getElementById('parentPhone').value = profile.parentPhone || '';
+  }
+});
+
+document.getElementById('weight').addEventListener('input', calculateBMI);
+document.getElementById('height').addEventListener('input', calculateBMI);
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const unit = document.getElementById('unit').value;
+  const schoolType = document.getElementById('schoolType').value;
+  const schoolName = document.getElementById('schoolName').value;
+  const grade = document.getElementById('grade').value;
+  const studentName = document.getElementById('studentName').value.trim();
+  const nationalId = document.getElementById('nationalId').value.trim();
+  const gender = document.getElementById('gender').value;
+  const birthDate = document.getElementById('birthDate').value;
+  const parentPhone = document.getElementById('parentPhone').value.trim();
+  const height = parseFloat(document.getElementById('height').value);
+  const weight = parseFloat(document.getElementById('weight').value);
+  const hemoglobin = parseFloat(document.getElementById('hemoglobin').value);
+  let bmi = calculateBMI();
+  if (!unit || !schoolName || !studentName) {
+    alert('Ì—ÃÏ „·¡ «·ÊÕœ…° «·„œ—”…° Ê«”„ «·ÿ«·»');
+    return;
+  }
+  if (isNaN(height) || isNaN(weight)) {
+    alert('«·—Ã«¡ ≈œŒ«· «·ÿÊ· Ê«·Ê“‰');
+    return;
+  }
+  const record = {
+    unit, studentName, gender, nationalId, schoolName, schoolType,
+    grade, weight, height, hemoglobin, bmi: bmi || ''
+  };
+  // Save student profile
+  saveStudentProfile(studentName, nationalId, gender, birthDate, parentPhone);
+  // Store in IndexedDB
+  await addPendingRecord({ data: record });
+  // Try sync immediately
+  if (navigator.onLine) {
+    await syncPendingRecords();
+    showStatus('?  „ «·Õ›Ÿ Ê«·„“«„‰… „⁄ Google Sheets', '#d4edda');
+  } else {
+    showStatus('?? €Ì— „ ’· ñ  „ «·Õ›Ÿ „Õ·Ì« Ê”Ì „ «·„“«„‰…  ·ﬁ«∆Ì«', '#fff3cd');
+  }
+  // Clear measurement fields but keep student info
+  document.getElementById('weight').value = '';
+  document.getElementById('height').value = '';
+  document.getElementById('hemoglobin').value = '';
+  document.getElementById('bmiDisplay').innerHTML = '?? „ƒ‘— ﬂ ·… «·Ã”„: ---';
+});
+
+window.addEventListener('load', async () => {
+  await openDB();
+  populateUnits();
+  updateDatalist();
+  document.getElementById('unit').addEventListener('change', filterSchools);
+  document.getElementById('schoolType').addEventListener('change', filterSchools);
+  window.addEventListener('online', () => {
+    showStatus('??  „ «·« ’«· ñ Ã«—Ì «·„“«„‰…', '#d1ecf1');
+    syncPendingRecords();
+  });
+  // initial sync if online
+  if (navigator.onLine) syncPendingRecords();
+});
