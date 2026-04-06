@@ -1,5 +1,5 @@
 // ==================== CONFIGURATION ====================
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3__NbQiGHz6dWU5-I8dPNikO2kqD7TRGnbAS7CIe1BvpvbfaRkm4o9DEB7LkxMOrl/exec'; // ⚠️ ضع الرابط الجديد
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3__NbQiGHz6dWU5-I8dPNikO2kqD7TRGnbAS7CIe1BvpvbfaRkm4o9DEB7LkxMOrl/exec'; // ⚠️ ضع رابط Web App الجديد
 
 // ==================== بيانات المدارس ====================
 const schoolsData = [
@@ -137,7 +137,7 @@ async function deleteRecord(id) {
   });
 }
 
-// ==================== مزامنة البيانات مع Google Sheets ====================
+// ==================== المزامنة مع Google Sheets ====================
 async function syncPendingRecords() {
   const pending = await getAllPendingRecords();
   if (!pending.length) return;
@@ -160,7 +160,7 @@ async function syncPendingRecords() {
       showStatus(`⚠️ لا يوجد اتصال – سيتم الحفظ لاحقاً`, '#fff3cd');
     }
   }
-  // حذف السجلات التي تمت مزامنتها
+  // حذف السجلات المزامنة نهائياً
   const dbSync = await openDB();
   const tx = dbSync.transaction(STORE_NAME, 'readwrite');
   const store = tx.objectStore(STORE_NAME);
@@ -169,7 +169,7 @@ async function syncPendingRecords() {
   for (let r of syncedRecords) await store.delete(r.id);
 }
 
-// ==================== جلب أسماء الطلاب من Google Sheets (لكل وحدة) ====================
+// ==================== جلب أسماء الطلاب من Google Sheets لكل وحدة ====================
 async function fetchStudentNamesFromSheet(unit) {
   try {
     const url = `${APPS_SCRIPT_URL}?unit=${encodeURIComponent(unit)}`;
@@ -183,17 +183,20 @@ async function fetchStudentNamesFromSheet(unit) {
   }
 }
 
-// ==================== تخزين محلي لأسماء الطلاب وبياناتهم ====================
+// ==================== تحديث القائمة المحلية بالأسماء والبيانات الأساسية ====================
 async function updateLocalStudentList(unit) {
   const names = await fetchStudentNamesFromSheet(unit);
   const profiles = JSON.parse(localStorage.getItem('studentProfiles') || '{}');
-  // إضافة الأسماء الجديدة مع بيانات فارغة (يمكن تحديثها لاحقاً)
+  let changed = false;
   for (let name of names) {
     if (!profiles[name]) {
-      profiles[name] = { nationalId: '', gender: '', birthDate: '', parentPhone: '', classNumber: '', grade: '' };
+      profiles[name] = { nationalId: '', gender: 'ذكر', birthDate: '', parentPhone: '', classNumber: '', grade: '' };
+      changed = true;
     }
   }
-  localStorage.setItem('studentProfiles', JSON.stringify(profiles));
+  if (changed) {
+    localStorage.setItem('studentProfiles', JSON.stringify(profiles));
+  }
   updateDatalist();
 }
 
@@ -218,9 +221,9 @@ function updateDatalist() {
     option.value = name;
     datalist.appendChild(option);
   });
+  console.log('Datalist updated with', Object.keys(profiles).length, 'names');
 }
 
-// ==================== تعبئة النموذج تلقائياً عند اختيار اسم ====================
 function fillFormFromProfile(name) {
   const profile = getStudentProfile(name);
   if (profile) {
@@ -231,11 +234,7 @@ function fillFormFromProfile(name) {
     if (profile.classNumber) document.getElementById('classNumber').value = profile.classNumber;
     if (profile.grade) document.getElementById('grade').value = profile.grade;
   } else {
-    // مسح الحقول إذا لم يوجد
-    document.getElementById('nationalId').value = '';
-    document.getElementById('gender').value = 'ذكر';
-    document.getElementById('birthDate').value = '';
-    document.getElementById('parentPhone').value = '';
+    // إذا لم يكن هناك ملف شخصي، لا نمسح الحقول (ربما اسم جديد)
   }
 }
 
@@ -289,7 +288,7 @@ function showStatus(msg, bg) {
   }, 3000);
 }
 
-// ==================== حدث حفظ البيانات ====================
+// ==================== حفظ البيانات ====================
 document.getElementById('saveBtn').addEventListener('click', async () => {
   const unit = document.getElementById('unit').value;
   const schoolType = document.getElementById('schoolType').value;
@@ -321,7 +320,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     weight, height, hemoglobin, bmi: bmi || ''
   };
 
-  // حفظ بيانات الطالب محلياً (للاقتراحات المستقبلية)
+  // حفظ بيانات الطالب محلياً (لتظهر في الاقتراحات)
   saveStudentProfile(studentName, nationalId, gender, birthDate, parentPhone, classNumber, grade);
 
   // تخزين السجل في IndexedDB
@@ -334,36 +333,48 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     showStatus('📱 غير متصل – تم الحفظ محلياً وسيتم المزامنة تلقائياً', '#fff3cd');
   }
 
-  // مسح حقول القياسات فقط
+  // مسح حقول القياسات فقط (مع الإبقاء على بيانات الطالب الأساسية)
   document.getElementById('weight').value = '';
   document.getElementById('height').value = '';
   document.getElementById('hemoglobin').value = '';
   document.getElementById('bmiDisplay').innerHTML = '📊 مؤشر كتلة الجسم: ---';
 });
 
-// ==================== أحداث التغيير ====================
+// ==================== أحداث ====================
 document.getElementById('studentName').addEventListener('input', (e) => {
+  const name = e.target.value;
+  if (name) {
+    fillFormFromProfile(name);
+  }
+});
+
+// عندما يختار المستخدم اسماً من القائمة، نملأ البيانات (حدث change بدلاً من input)
+document.getElementById('studentName').addEventListener('change', (e) => {
   const name = e.target.value;
   fillFormFromProfile(name);
 });
 
 document.getElementById('weight').addEventListener('input', calculateBMI);
 document.getElementById('height').addEventListener('input', calculateBMI);
+
 document.getElementById('unit').addEventListener('change', async () => {
   filterSchools();
   const unit = document.getElementById('unit').value;
   if (unit && navigator.onLine) {
     await updateLocalStudentList(unit);
+  } else if (unit) {
+    // إذا كان غير متصل، استخدم ما هو موجود محلياً
+    updateDatalist();
   }
 });
+
 document.getElementById('schoolType').addEventListener('change', filterSchools);
 
 // ==================== التحميل الأولي ====================
 window.addEventListener('load', async () => {
   await openDB();
   populateUnits();
-  updateDatalist();
-  // محاولة جلب الأسماء إذا كان متصلاً
+  updateDatalist(); // يعرض أي أسماء موجودة مسبقاً في localStorage
   if (navigator.onLine) {
     const unitSelect = document.getElementById('unit');
     if (unitSelect.value) {
