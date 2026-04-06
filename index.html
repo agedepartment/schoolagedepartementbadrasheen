@@ -9,17 +9,31 @@
   <style>
     * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background: #f0f4f8; margin: 0; padding: 20px; }
-    .container { max-width: 700px; margin: auto; background: white; border-radius: 28px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+    .container { max-width: 800px; margin: auto; background: white; border-radius: 28px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
     h1 { font-size: 1.6rem; color: #1f5068; text-align: center; margin-bottom: 20px; }
     label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; color: #2c3e50; }
     select, input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 16px; font-size: 1rem; background: #fff; }
-    input:read-only { background-color: #f5f5f5; color: #666; }
+    input:read-only { background-color: #e9ecef; color: #495057; }
     .row2 { display: flex; gap: 12px; flex-wrap: wrap; }
-    .row2 > div { flex: 1; min-width: 120px; }
-    button { background: #2c7da0; color: white; border: none; padding: 14px; width: 100%; border-radius: 40px; font-size: 1.2rem; margin-top: 25px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    .row2 > div { flex: 1; min-width: 150px; }
+    button { background: #2c7da0; color: white; border: none; padding: 14px; width: 100%; border-radius: 40px; font-size: 1.2rem; margin-top: 15px; cursor: pointer; font-weight: bold; transition: 0.2s; }
     button:active { background: #1f5068; }
+    .button-group { display: flex; gap: 12px; margin-top: 15px; }
+    .button-group button { margin-top: 0; }
     .bmi-result { background: #e9f5e9; padding: 12px; border-radius: 20px; margin-top: 15px; text-align: center; font-weight: bold; }
     .status { background: #fff3cd; padding: 10px; border-radius: 16px; margin-top: 15px; text-align: center; font-size: 0.9rem; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 28px; padding: 20px; max-height: 80%; overflow-y: auto; }
+    .modal-content h3 { margin-top: 0; }
+    .modal-content ul { list-style: none; padding: 0; }
+    .modal-content li { padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+    .synced { color: green; }
+    .pending { color: orange; }
+    .close { float: left; cursor: pointer; font-size: 24px; }
+    @media (max-width: 600px) {
+      .row2 > div { min-width: 100%; }
+      .button-group { flex-direction: column; }
+    }
   </style>
 </head>
 <body>
@@ -84,7 +98,19 @@
 
   <div class="bmi-result" id="bmiDisplay">📊 مؤشر كتلة الجسم: ---</div>
   <div class="status" id="syncStatus">🟢 جاهز للتسجيل</div>
-  <button id="saveBtn">💾 حفظ البيانات</button>
+  <div class="button-group">
+    <button id="saveBtn">💾 حفظ البيانات</button>
+    <button id="newStudentBtn">➕ طالب جديد</button>
+    <button id="showLogBtn">📋 قائمة التسجيل</button>
+  </div>
+</div>
+
+<div id="logModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h3>قائمة تسجيلات الجلسة الحالية</h3>
+    <ul id="sessionLogList"></ul>
+  </div>
 </div>
 
 <script src="app.js"></script>
