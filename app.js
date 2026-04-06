@@ -106,9 +106,20 @@ async function getAllPendingRecords() {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
     const index = store.index('synced');
-    const req = index.getAll(IDBKeyRange.only(false));
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    const records = [];
+    const request = index.openCursor();
+    request.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        if (cursor.value.synced === false) {
+          records.push({ id: cursor.primaryKey, data: cursor.value.data });
+        }
+        cursor.continue();
+      } else {
+        resolve(records);
+      }
+    };
+    request.onerror = () => reject(request.error);
   });
 }
 
@@ -120,7 +131,10 @@ async function markRecordAsSynced(id) {
     const getReq = store.get(id);
     getReq.onsuccess = () => {
       const record = getReq.result;
-      if (record) { record.synced = true; store.put(record); }
+      if (record) {
+        record.synced = true;
+        store.put(record);
+      }
       resolve();
     };
     getReq.onerror = reject;
@@ -137,6 +151,42 @@ async function deleteRecord(id) {
   });
 }
 
+async function deleteAllSyncedRecords() {
+  if (!db) await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const index = store.index('synced');
+    const idsToDelete = [];
+    const request = index.openCursor();
+    request.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        if (cursor.value.synced === true) {
+          idsToDelete.push(cursor.primaryKey);
+        }
+        cursor.continue();
+      } else {
+        // حذف كل السجلات المتزامنة
+        let completed = 0;
+        if (idsToDelete.length === 0) {
+          resolve();
+          return;
+        }
+        idsToDelete.forEach(id => {
+          const delReq = store.delete(id);
+          delReq.onsuccess = () => {
+            completed++;
+            if (completed === idsToDelete.length) resolve();
+          };
+          delReq.onerror = reject;
+        });
+      }
+    };
+    request.onerror = reject;
+  });
+}
+
 async function syncPendingRecords() {
   const pending = await getAllPendingRecords();
   if (!pending.length) return;
@@ -148,7 +198,6 @@ async function syncPendingRecords() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(rec.data)
       });
-      // بسبب no-cors لا يمكن قراءة response، لكننا نفترض النجاح
       await markRecordAsSynced(rec.id);
       showStatus(`✅ تم مزامنة: ${rec.data.studentName}`, '#d4edda');
       updateSessionLog();
@@ -157,13 +206,7 @@ async function syncPendingRecords() {
       showStatus(`⚠️ لا يوجد اتصال – سيتم الحفظ لاحقاً`, '#fff3cd');
     }
   }
-  // حذف السجلات المزامنة
-  const dbSync = await openDB();
-  const tx = dbSync.transaction(STORE_NAME, 'readwrite');
-  const store = tx.objectStore(STORE_NAME);
-  const index = store.index('synced');
-  const syncedRecords = await index.getAll(IDBKeyRange.only(true));
-  for (let r of syncedRecords) await store.delete(r.id);
+  await deleteAllSyncedRecords();
 }
 
 // ==================== جلب جميع الطلاب من الشيت ====================
