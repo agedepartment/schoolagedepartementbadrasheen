@@ -1,7 +1,7 @@
 // ==================== CONFIGURATION ====================
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3__NbQiGHz6dWU5-I8dPNikO2kqD7TRGnbAS7CIe1BvpvbfaRkm4o9DEB7LkxMOrl/exec'; // ?? REPLACE WITH YOUR WEB APP URL
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3__NbQiGHz6dWU5-I8dPNikO2kqD7TRGnbAS7CIe1BvpvbfaRkm4o9DEB7LkxMOrl/exec'; // ⚠️ ضع الرابط الجديد
 
-// ==================== EMBEDDED SCHOOL DATA (from your Excel) ====================
+// ==================== بيانات المدارس ====================
 const schoolsData = [
   { unit: "سقارة", type: "عام", name: "سقارة الابتدائية المشتركه" },
   { unit: "سقارة", type: "عام", name: "الوحدة المحلية الابتدائية بسقارة" },
@@ -68,25 +68,23 @@ const schoolsData = [
   { unit: "منشأة كاسب", type: "عام", name: "منشأة كاسب الابتدائية المشتركه" }
 ];
 
-// Unique units (17)
 const units = [...new Map(schoolsData.map(s => [s.unit, s.unit])).values()];
 
-// ==================== INDEXEDDB SETUP ====================
+// ==================== IndexedDB للتخزين المؤقت ====================
 let db;
 const DB_NAME = 'StudentSyncDB';
 const STORE_NAME = 'pendingRecords';
 
 function openDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(DB_NAME, 2);
     request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      db = request.result;
-      resolve(db);
-    };
+    request.onsuccess = () => { db = request.result; resolve(db); };
     request.onupgradeneeded = (e) => {
-      const store = e.target.result.createObjectStore(STORE_NAME, { autoIncrement: true });
-      store.createIndex('synced', 'synced');
+      if (!e.target.result.objectStoreNames.contains(STORE_NAME)) {
+        const store = e.target.result.createObjectStore(STORE_NAME, { autoIncrement: true });
+        store.createIndex('synced', 'synced');
+      }
     };
   });
 }
@@ -122,10 +120,7 @@ async function markRecordAsSynced(id) {
     const getReq = store.get(id);
     getReq.onsuccess = () => {
       const record = getReq.result;
-      if (record) {
-        record.synced = true;
-        store.put(record);
-      }
+      if (record) { record.synced = true; store.put(record); }
       resolve();
     };
     getReq.onerror = reject;
@@ -142,7 +137,7 @@ async function deleteRecord(id) {
   });
 }
 
-// ==================== SYNC TO GOOGLE SHEETS ====================
+// ==================== مزامنة البيانات مع Google Sheets ====================
 async function syncPendingRecords() {
   const pending = await getAllPendingRecords();
   if (!pending.length) return;
@@ -150,38 +145,66 @@ async function syncPendingRecords() {
     try {
       const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', // simpler but doesn't return JSON; alternative: use cors + proper CORS on Apps Script
+        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(rec.data)
       });
-      // If using 'no-cors', we can't read response, assume success.
-      await markRecordAsSynced(rec.id);
-      showStatus(`? تم مزامنة: ${rec.data.studentName}`, '#d4edda');
+      if (response.ok) {
+        await markRecordAsSynced(rec.id);
+        showStatus(`✅ تم مزامنة: ${rec.data.studentName}`, '#d4edda');
+      } else {
+        throw new Error('Server error');
+      }
     } catch (err) {
       console.warn('Sync failed', err);
-      showStatus(`?? لا يوجد اتصال – سيتم الحفظ لاحقاً`, '#fff3cd');
+      showStatus(`⚠️ لا يوجد اتصال – سيتم الحفظ لاحقاً`, '#fff3cd');
     }
   }
-  // Clean up synced records after sync
+  // حذف السجلات التي تمت مزامنتها
   const dbSync = await openDB();
   const tx = dbSync.transaction(STORE_NAME, 'readwrite');
   const store = tx.objectStore(STORE_NAME);
   const index = store.index('synced');
   const syncedRecords = await index.getAll(IDBKeyRange.only(true));
-  for (let r of syncedRecords) {
-    await store.delete(r.id);
+  for (let r of syncedRecords) await store.delete(r.id);
+}
+
+// ==================== جلب أسماء الطلاب من Google Sheets (لكل وحدة) ====================
+async function fetchStudentNamesFromSheet(unit) {
+  try {
+    const url = `${APPS_SCRIPT_URL}?unit=${encodeURIComponent(unit)}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.names) return data.names;
+    return [];
+  } catch (err) {
+    console.warn('Failed to fetch names', err);
+    return [];
   }
 }
 
-// ==================== STUDENT AUTOCOMPLETE (LocalStorage) ====================
-function getStudentProfile(name) {
+// ==================== تخزين محلي لأسماء الطلاب وبياناتهم ====================
+async function updateLocalStudentList(unit) {
+  const names = await fetchStudentNamesFromSheet(unit);
   const profiles = JSON.parse(localStorage.getItem('studentProfiles') || '{}');
-  return profiles[name];
+  // إضافة الأسماء الجديدة مع بيانات فارغة (يمكن تحديثها لاحقاً)
+  for (let name of names) {
+    if (!profiles[name]) {
+      profiles[name] = { nationalId: '', gender: '', birthDate: '', parentPhone: '', classNumber: '', grade: '' };
+    }
+  }
+  localStorage.setItem('studentProfiles', JSON.stringify(profiles));
+  updateDatalist();
 }
 
-function saveStudentProfile(name, nationalId, gender, birthDate, parentPhone) {
+function getStudentProfile(name) {
   const profiles = JSON.parse(localStorage.getItem('studentProfiles') || '{}');
-  profiles[name] = { nationalId, gender, birthDate, parentPhone };
+  return profiles[name] || null;
+}
+
+function saveStudentProfile(name, nationalId, gender, birthDate, parentPhone, classNumber, grade) {
+  const profiles = JSON.parse(localStorage.getItem('studentProfiles') || '{}');
+  profiles[name] = { nationalId, gender, birthDate, parentPhone, classNumber, grade };
   localStorage.setItem('studentProfiles', JSON.stringify(profiles));
   updateDatalist();
 }
@@ -197,7 +220,26 @@ function updateDatalist() {
   });
 }
 
-// ==================== FORM HANDLERS ====================
+// ==================== تعبئة النموذج تلقائياً عند اختيار اسم ====================
+function fillFormFromProfile(name) {
+  const profile = getStudentProfile(name);
+  if (profile) {
+    document.getElementById('nationalId').value = profile.nationalId || '';
+    document.getElementById('gender').value = profile.gender || 'ذكر';
+    document.getElementById('birthDate').value = profile.birthDate || '';
+    document.getElementById('parentPhone').value = profile.parentPhone || '';
+    if (profile.classNumber) document.getElementById('classNumber').value = profile.classNumber;
+    if (profile.grade) document.getElementById('grade').value = profile.grade;
+  } else {
+    // مسح الحقول إذا لم يوجد
+    document.getElementById('nationalId').value = '';
+    document.getElementById('gender').value = 'ذكر';
+    document.getElementById('birthDate').value = '';
+    document.getElementById('parentPhone').value = '';
+  }
+}
+
+// ==================== التعامل مع واجهة المستخدم ====================
 function populateUnits() {
   const unitSelect = document.getElementById('unit');
   unitSelect.innerHTML = '<option value="">-- اختر الوحدة --</option>';
@@ -230,10 +272,10 @@ function calculateBMI() {
   if (weight > 0 && heightCm > 0) {
     const heightM = heightCm / 100;
     const bmi = weight / (heightM * heightM);
-    document.getElementById('bmiDisplay').innerHTML = `?? مؤشر كتلة الجسم: ${bmi.toFixed(1)} (${bmi < 18.5 ? 'نقص وزن' : bmi < 25 ? 'طبيعي' : bmi < 30 ? 'زيادة وزن' : 'سمنة'})`;
+    document.getElementById('bmiDisplay').innerHTML = `📊 مؤشر كتلة الجسم: ${bmi.toFixed(1)} (${bmi < 18.5 ? 'نقص وزن' : bmi < 25 ? 'طبيعي' : bmi < 30 ? 'زيادة وزن' : 'سمنة'})`;
     return bmi.toFixed(1);
   }
-  document.getElementById('bmiDisplay').innerHTML = '?? مؤشر كتلة الجسم: ---';
+  document.getElementById('bmiDisplay').innerHTML = '📊 مؤشر كتلة الجسم: ---';
   return null;
 }
 
@@ -242,30 +284,18 @@ function showStatus(msg, bg) {
   statusDiv.innerHTML = msg;
   statusDiv.style.backgroundColor = bg;
   setTimeout(() => {
-    if (navigator.onLine) statusDiv.innerHTML = '?? متصل وتمت المزامنة';
-    else statusDiv.innerHTML = '?? غير متصل – البيانات محفوظة محلياً';
+    if (navigator.onLine) statusDiv.innerHTML = '🟢 متصل وتمت المزامنة';
+    else statusDiv.innerHTML = '🔴 غير متصل – البيانات محفوظة محلياً';
   }, 3000);
 }
 
-document.getElementById('studentName').addEventListener('input', (e) => {
-  const name = e.target.value;
-  const profile = getStudentProfile(name);
-  if (profile) {
-    document.getElementById('nationalId').value = profile.nationalId || '';
-    document.getElementById('gender').value = profile.gender || 'ذكر';
-    document.getElementById('birthDate').value = profile.birthDate || '';
-    document.getElementById('parentPhone').value = profile.parentPhone || '';
-  }
-});
-
-document.getElementById('weight').addEventListener('input', calculateBMI);
-document.getElementById('height').addEventListener('input', calculateBMI);
-
+// ==================== حدث حفظ البيانات ====================
 document.getElementById('saveBtn').addEventListener('click', async () => {
   const unit = document.getElementById('unit').value;
   const schoolType = document.getElementById('schoolType').value;
   const schoolName = document.getElementById('schoolName').value;
   const grade = document.getElementById('grade').value;
+  const classNumber = document.getElementById('classNumber').value;
   const studentName = document.getElementById('studentName').value.trim();
   const nationalId = document.getElementById('nationalId').value.trim();
   const gender = document.getElementById('gender').value;
@@ -275,46 +305,76 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
   const weight = parseFloat(document.getElementById('weight').value);
   const hemoglobin = parseFloat(document.getElementById('hemoglobin').value);
   let bmi = calculateBMI();
-  if (!unit || !schoolName || !studentName) {
-    alert('يرجى ملء الوحدة، المدرسة، واسم الطالب');
+
+  if (!unit || !schoolName || !studentName || !classNumber) {
+    alert('يرجى ملء الوحدة، المدرسة، اسم الطالب، والفصل');
     return;
   }
   if (isNaN(height) || isNaN(weight)) {
     alert('الرجاء إدخال الطول والوزن');
     return;
   }
+
   const record = {
-    unit, studentName, gender, nationalId, schoolName, schoolType,
-    grade, weight, height, hemoglobin, bmi: bmi || ''
+    unit, studentName, gender, nationalId, parentPhone, birthDate,
+    schoolName, schoolType, grade, classNumber,
+    weight, height, hemoglobin, bmi: bmi || ''
   };
-  // Save student profile
-  saveStudentProfile(studentName, nationalId, gender, birthDate, parentPhone);
-  // Store in IndexedDB
+
+  // حفظ بيانات الطالب محلياً (للاقتراحات المستقبلية)
+  saveStudentProfile(studentName, nationalId, gender, birthDate, parentPhone, classNumber, grade);
+
+  // تخزين السجل في IndexedDB
   await addPendingRecord({ data: record });
-  // Try sync immediately
+
   if (navigator.onLine) {
     await syncPendingRecords();
-    showStatus('? تم الحفظ والمزامنة مع Google Sheets', '#d4edda');
+    showStatus('✅ تم الحفظ والمزامنة مع Google Sheets', '#d4edda');
   } else {
-    showStatus('?? غير متصل – تم الحفظ محلياً وسيتم المزامنة تلقائياً', '#fff3cd');
+    showStatus('📱 غير متصل – تم الحفظ محلياً وسيتم المزامنة تلقائياً', '#fff3cd');
   }
-  // Clear measurement fields but keep student info
+
+  // مسح حقول القياسات فقط
   document.getElementById('weight').value = '';
   document.getElementById('height').value = '';
   document.getElementById('hemoglobin').value = '';
-  document.getElementById('bmiDisplay').innerHTML = '?? مؤشر كتلة الجسم: ---';
+  document.getElementById('bmiDisplay').innerHTML = '📊 مؤشر كتلة الجسم: ---';
 });
 
+// ==================== أحداث التغيير ====================
+document.getElementById('studentName').addEventListener('input', (e) => {
+  const name = e.target.value;
+  fillFormFromProfile(name);
+});
+
+document.getElementById('weight').addEventListener('input', calculateBMI);
+document.getElementById('height').addEventListener('input', calculateBMI);
+document.getElementById('unit').addEventListener('change', async () => {
+  filterSchools();
+  const unit = document.getElementById('unit').value;
+  if (unit && navigator.onLine) {
+    await updateLocalStudentList(unit);
+  }
+});
+document.getElementById('schoolType').addEventListener('change', filterSchools);
+
+// ==================== التحميل الأولي ====================
 window.addEventListener('load', async () => {
   await openDB();
   populateUnits();
   updateDatalist();
-  document.getElementById('unit').addEventListener('change', filterSchools);
-  document.getElementById('schoolType').addEventListener('change', filterSchools);
-  window.addEventListener('online', () => {
-    showStatus('?? تم الاتصال – جاري المزامنة', '#d1ecf1');
-    syncPendingRecords();
+  // محاولة جلب الأسماء إذا كان متصلاً
+  if (navigator.onLine) {
+    const unitSelect = document.getElementById('unit');
+    if (unitSelect.value) {
+      await updateLocalStudentList(unitSelect.value);
+    }
+  }
+  window.addEventListener('online', async () => {
+    showStatus('🔄 تم الاتصال – جاري المزامنة', '#d1ecf1');
+    await syncPendingRecords();
+    const unit = document.getElementById('unit').value;
+    if (unit) await updateLocalStudentList(unit);
   });
-  // initial sync if online
-  if (navigator.onLine) syncPendingRecords();
+  if (navigator.onLine) await syncPendingRecords();
 });
