@@ -13,6 +13,7 @@
     h1 { font-size: 1.6rem; color: #1f5068; text-align: center; margin-bottom: 20px; }
     label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; color: #2c3e50; }
     select, input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 16px; font-size: 1rem; background: #fff; }
+    input:read-only { background-color: #f5f5f5; color: #666; }
     .row2 { display: flex; gap: 12px; flex-wrap: wrap; }
     .row2 > div { flex: 1; min-width: 120px; }
     button { background: #2c7da0; color: white; border: none; padding: 14px; width: 100%; border-radius: 40px; font-size: 1.2rem; margin-top: 25px; cursor: pointer; font-weight: bold; transition: 0.2s; }
@@ -61,18 +62,18 @@
     </div>
   </div>
 
-  <label>👨‍🎓 اسم الطالب (اكتب أول حرف يظهر الاقتراحات)</label>
-  <input type="text" id="studentName" list="studentList" placeholder="اكتب اسم الطالب...">
+  <label>👨‍🎓 اسم الطالب (اختر من القائمة)</label>
+  <input type="text" id="studentName" list="studentList" placeholder="اكتب اسم الطالب..." autocomplete="off">
   <datalist id="studentList"></datalist>
 
   <div class="row2">
-    <div><label>🆔 الرقم القومي</label><input type="text" id="nationalId"></div>
-    <div><label>⚧ النوع</label><select id="gender"><option>ذكر</option><option>أنثى</option></select></div>
+    <div><label>🆔 الرقم القومي</label><input type="text" id="nationalId" readonly></div>
+    <div><label>⚧ النوع</label><input type="text" id="gender" readonly></div>
   </div>
 
   <div class="row2">
-    <div><label>📅 تاريخ الميلاد</label><input type="date" id="birthDate"></div>
-    <div><label>📞 تليفون ولي الأمر</label><input type="tel" id="parentPhone"></div>
+    <div><label>📅 تاريخ الميلاد</label><input type="date" id="birthDate" readonly></div>
+    <div><label>📞 تليفون ولي الأمر</label><input type="tel" id="parentPhone" placeholder="أدخل الرقم إن لم يكن موجوداً"></div>
   </div>
 
   <div class="row2">
