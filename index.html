@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>نظام تسجيل الطلاب - PWA</title>
+  <title>تسجيل الطلاب - PWA</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2c7da0">
   <style>
@@ -19,7 +19,6 @@
     button:active { background: #1f5068; }
     .bmi-result { background: #e9f5e9; padding: 12px; border-radius: 20px; margin-top: 15px; text-align: center; font-weight: bold; }
     .status { background: #fff3cd; padding: 10px; border-radius: 16px; margin-top: 15px; text-align: center; font-size: 0.9rem; }
-    hr { margin: 20px 0; }
   </style>
 </head>
 <body>
@@ -38,25 +37,43 @@
   <label>📚 اسم المدرسة</label>
   <select id="schoolName"></select>
 
-  <label>📖 الصف</label>
-  <select id="grade">
-    <option value="الصف الاول">الصف الاول</option><option value="الصف الثاني">الصف الثاني</option>
-    <option value="الصف الثالث">الصف الثالث</option><option value="الصف الرابع">الصف الرابع</option>
-    <option value="الصف الخامس">الصف الخامس</option><option value="الصف السادس">الصف السادس</option>
-  </select>
+  <div class="row2">
+    <div>
+      <label>📖 الصف</label>
+      <select id="grade">
+        <option value="الصف الاول">الصف الاول</option>
+        <option value="الصف الثاني">الصف الثاني</option>
+        <option value="الصف الثالث">الصف الثالث</option>
+        <option value="الصف الرابع">الصف الرابع</option>
+        <option value="الصف الخامس">الصف الخامس</option>
+        <option value="الصف السادس">الصف السادس</option>
+      </select>
+    </div>
+    <div>
+      <label>🏫 الفصل</label>
+      <select id="classNumber">
+        <option value="">-- اختر الفصل --</option>
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+        <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+  </div>
 
-  <label>👨‍🎓 اسم الطالب (ابتداءً بكتابة حرف)</label>
+  <label>👨‍🎓 اسم الطالب (اكتب أول حرف يظهر الاقتراحات)</label>
   <input type="text" id="studentName" list="studentList" placeholder="اكتب اسم الطالب...">
   <datalist id="studentList"></datalist>
 
   <div class="row2">
     <div><label>🆔 الرقم القومي</label><input type="text" id="nationalId"></div>
     <div><label>⚧ النوع</label><select id="gender"><option>ذكر</option><option>أنثى</option></select></div>
-    <div><label>📅 تاريخ الميلاد</label><input type="date" id="birthDate"></div>
   </div>
 
-  <label>📞 تليفون ولي الأمر</label>
-  <input type="tel" id="parentPhone">
+  <div class="row2">
+    <div><label>📅 تاريخ الميلاد</label><input type="date" id="birthDate"></div>
+    <div><label>📞 تليفون ولي الأمر</label><input type="tel" id="parentPhone"></div>
+  </div>
 
   <div class="row2">
     <div><label>📏 الطول (سم)</label><input type="number" id="height" step="0.1"></div>
@@ -64,7 +81,7 @@
     <div><label>🩸 الهيموجلوبين</label><input type="number" id="hemoglobin" step="0.1"></div>
   </div>
 
-  <div class="bmi-result" id="bmiDisplay">مؤشر كتلة الجسم: ---</div>
+  <div class="bmi-result" id="bmiDisplay">📊 مؤشر كتلة الجسم: ---</div>
   <div class="status" id="syncStatus">🟢 جاهز للتسجيل</div>
   <button id="saveBtn">💾 حفظ البيانات</button>
 </div>
