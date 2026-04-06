@@ -141,16 +141,6 @@ async function markRecordAsSynced(id) {
   });
 }
 
-async function deleteRecord(id) {
-  if (!db) await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).delete(id);
-    tx.oncomplete = resolve;
-    tx.onerror = reject;
-  });
-}
-
 async function deleteAllSyncedRecords() {
   if (!db) await openDB();
   return new Promise((resolve, reject) => {
@@ -167,7 +157,6 @@ async function deleteAllSyncedRecords() {
         }
         cursor.continue();
       } else {
-        // حذف كل السجلات المتزامنة
         let completed = 0;
         if (idsToDelete.length === 0) {
           resolve();
@@ -190,23 +179,49 @@ async function deleteAllSyncedRecords() {
 async function syncPendingRecords() {
   const pending = await getAllPendingRecords();
   if (!pending.length) return;
+  let anySuccess = false;
   for (let rec of pending) {
     try {
+      // إرسال البيانات كـ x-www-form-urlencoded
+      const formData = new URLSearchParams();
+      formData.append('unit', rec.data.unit);
+      formData.append('studentName', rec.data.studentName);
+      formData.append('gender', rec.data.gender);
+      formData.append('nationalId', rec.data.nationalId);
+      formData.append('parentPhone', rec.data.parentPhone);
+      formData.append('birthDate', rec.data.birthDate);
+      formData.append('schoolName', rec.data.schoolName);
+      formData.append('schoolType', rec.data.schoolType);
+      formData.append('grade', rec.data.grade);
+      formData.append('classNumber', rec.data.classNumber);
+      formData.append('weight', rec.data.weight);
+      formData.append('height', rec.data.height);
+      formData.append('hemoglobin', rec.data.hemoglobin);
+      formData.append('bmi', rec.data.bmi);
+
       const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(rec.data)
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
       });
-      await markRecordAsSynced(rec.id);
-      showStatus(`✅ تم مزامنة: ${rec.data.studentName}`, '#d4edda');
-      updateSessionLog();
+      const result = await response.json();
+      if (result.status === 'success') {
+        await markRecordAsSynced(rec.id);
+        showStatus(`✅ تم مزامنة: ${rec.data.studentName}`, '#d4edda');
+        updateSessionLog();
+        anySuccess = true;
+      } else {
+        throw new Error(result.message || 'فشل الحفظ في الشيت');
+      }
     } catch (err) {
       console.warn('Sync failed', err);
-      showStatus(`⚠️ لا يوجد اتصال – سيتم الحفظ لاحقاً`, '#fff3cd');
+      showStatus(`⚠️ فشل المزامنة: ${err.message}`, '#f8d7da');
     }
   }
-  await deleteAllSyncedRecords();
+  if (anySuccess) {
+    await deleteAllSyncedRecords();
+  }
 }
 
 // ==================== جلب جميع الطلاب من الشيت ====================
@@ -428,13 +443,18 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     
     if (navigator.onLine) {
       await syncPendingRecords();
-      showStatus('✅ تم الحفظ والمزامنة مع Google Sheets', '#d4edda');
-      await refreshAllStudentsForUnit(unit);
-      updateDatalistFromCurrentFilter();
-      // تحديث حالة جميع السجلات في الجلسة إلى "تم الحفظ"
-      sessionRecords = sessionRecords.map(r => ({ ...r, synced: true }));
-      updateSessionLog();
-      localStorage.setItem('sessionLog', JSON.stringify(sessionRecords));
+      // بعد المزامنة، نتحقق من نجاحها عبر قراءة السجلات المتبقية
+      const remaining = await getAllPendingRecords();
+      if (remaining.length === 0) {
+        showStatus('✅ تم الحفظ والمزامنة مع Google Sheets', '#d4edda');
+        await refreshAllStudentsForUnit(unit);
+        updateDatalistFromCurrentFilter();
+        sessionRecords = sessionRecords.map(r => ({ ...r, synced: true }));
+        updateSessionLog();
+        localStorage.setItem('sessionLog', JSON.stringify(sessionRecords));
+      } else {
+        showStatus('⚠️ فشلت المزامنة، سيتم المحاولة لاحقاً', '#f8d7da');
+      }
     } else {
       showStatus('📱 غير متصل – تم الحفظ محلياً وسيتم المزامنة تلقائياً', '#fff3cd');
     }
