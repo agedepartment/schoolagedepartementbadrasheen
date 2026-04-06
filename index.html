@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>äÙÇã ÊÓÌíá ÇáØáÇÈ - PWA</title>
+  <title>نظام تسجيل الطلاب - PWA</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2c7da0">
   <style>
@@ -24,49 +24,49 @@
 </head>
 <body>
 <div class="container">
-  <h1>?? ÊÓÌíá ÈíÇäÇÊ ÇáØáÇÈ</h1>
+  <h1>📋 تسجيل بيانات الطلاب</h1>
 
-  <label>??? ÇáæÍÏÉ</label>
+  <label>🏘️ الوحدة</label>
   <select id="unit"></select>
 
-  <label>?? äæÚ ÇáãÏÑÓÉ</label>
+  <label>🏫 نوع المدرسة</label>
   <select id="schoolType">
-    <option value="ÚÇã">ÚÇã</option>
-    <option value="ÃÒåÑ">ÃÒåÑ</option>
+    <option value="عام">عام</option>
+    <option value="أزهر">أزهر</option>
   </select>
 
-  <label>?? ÇÓã ÇáãÏÑÓÉ</label>
+  <label>📚 اسم المدرسة</label>
   <select id="schoolName"></select>
 
-  <label>?? ÇáÕÝ</label>
+  <label>📖 الصف</label>
   <select id="grade">
-    <option value="ÇáÕÝ ÇáÇæá">ÇáÕÝ ÇáÇæá</option><option value="ÇáÕÝ ÇáËÇäí">ÇáÕÝ ÇáËÇäí</option>
-    <option value="ÇáÕÝ ÇáËÇáË">ÇáÕÝ ÇáËÇáË</option><option value="ÇáÕÝ ÇáÑÇÈÚ">ÇáÕÝ ÇáÑÇÈÚ</option>
-    <option value="ÇáÕÝ ÇáÎÇãÓ">ÇáÕÝ ÇáÎÇãÓ</option><option value="ÇáÕÝ ÇáÓÇÏÓ">ÇáÕÝ ÇáÓÇÏÓ</option>
+    <option value="الصف الاول">الصف الاول</option><option value="الصف الثاني">الصف الثاني</option>
+    <option value="الصف الثالث">الصف الثالث</option><option value="الصف الرابع">الصف الرابع</option>
+    <option value="الصف الخامس">الصف الخامس</option><option value="الصف السادس">الصف السادس</option>
   </select>
 
-  <label>??ž?? ÇÓã ÇáØÇáÈ (ÇÈÊÏÇÁð ÈßÊÇÈÉ ÍÑÝ)</label>
-  <input type="text" id="studentName" list="studentList" placeholder="ÇßÊÈ ÇÓã ÇáØÇáÈ...">
+  <label>👨‍🎓 اسم الطالب (ابتداءً بكتابة حرف)</label>
+  <input type="text" id="studentName" list="studentList" placeholder="اكتب اسم الطالب...">
   <datalist id="studentList"></datalist>
 
   <div class="row2">
-    <div><label>?? ÇáÑÞã ÇáÞæãí</label><input type="text" id="nationalId"></div>
-    <div><label>? ÇáäæÚ</label><select id="gender"><option>ÐßÑ</option><option>ÃäËì</option></select></div>
-    <div><label>?? ÊÇÑíÎ ÇáãíáÇÏ</label><input type="date" id="birthDate"></div>
+    <div><label>🆔 الرقم القومي</label><input type="text" id="nationalId"></div>
+    <div><label>⚧ النوع</label><select id="gender"><option>ذكر</option><option>أنثى</option></select></div>
+    <div><label>📅 تاريخ الميلاد</label><input type="date" id="birthDate"></div>
   </div>
 
-  <label>?? ÊáíÝæä æáí ÇáÃãÑ</label>
+  <label>📞 تليفون ولي الأمر</label>
   <input type="tel" id="parentPhone">
 
   <div class="row2">
-    <div><label>?? ÇáØæá (Óã)</label><input type="number" id="height" step="0.1"></div>
-    <div><label>?? ÇáæÒä (ßÌã)</label><input type="number" id="weight" step="0.1"></div>
-    <div><label>?? ÇáåíãæÌáæÈíä</label><input type="number" id="hemoglobin" step="0.1"></div>
+    <div><label>📏 الطول (سم)</label><input type="number" id="height" step="0.1"></div>
+    <div><label>⚖️ الوزن (كجم)</label><input type="number" id="weight" step="0.1"></div>
+    <div><label>🩸 الهيموجلوبين</label><input type="number" id="hemoglobin" step="0.1"></div>
   </div>
 
-  <div class="bmi-result" id="bmiDisplay">ãÄÔÑ ßÊáÉ ÇáÌÓã: ---</div>
-  <div class="status" id="syncStatus">?? ÌÇåÒ ááÊÓÌíá</div>
-  <button id="saveBtn">?? ÍÝÙ ÇáÈíÇäÇÊ</button>
+  <div class="bmi-result" id="bmiDisplay">مؤشر كتلة الجسم: ---</div>
+  <div class="status" id="syncStatus">🟢 جاهز للتسجيل</div>
+  <button id="saveBtn">💾 حفظ البيانات</button>
 </div>
 
 <script src="app.js"></script>
