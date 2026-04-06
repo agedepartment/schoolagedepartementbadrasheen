@@ -77,7 +77,7 @@ const STORE_NAME = 'pendingRecords';
 
 function openDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 2);
+    const request = indexedDB.open(DB_NAME, 3);
     request.onerror = () => reject(request.error);
     request.onsuccess = () => { db = request.result; resolve(db); };
     request.onupgradeneeded = (e) => {
@@ -151,11 +151,9 @@ async function syncPendingRecords() {
       if (response.ok) {
         await markRecordAsSynced(rec.id);
         showStatus(`✅ تم مزامنة: ${rec.data.studentName}`, '#d4edda');
-      } else {
-        throw new Error('Server error');
-      }
+        updateSessionLog();
+      } else throw new Error();
     } catch (err) {
-      console.warn('Sync failed', err);
       showStatus(`⚠️ لا يوجد اتصال – سيتم الحفظ لاحقاً`, '#fff3cd');
     }
   }
@@ -167,35 +165,32 @@ async function syncPendingRecords() {
   for (let r of syncedRecords) await store.delete(r.id);
 }
 
-// ==================== جلب بيانات الطلاب حسب الفلتر (المدرسة، الصف، الفصل) ====================
-async function fetchStudentsByFilter(unit, schoolName, grade, classNumber) {
+// ==================== جلب جميع الطلاب من الشيت ====================
+async function fetchAllStudentsFromSheet(unit) {
   try {
-    const url = `${APPS_SCRIPT_URL}?unit=${encodeURIComponent(unit)}&schoolName=${encodeURIComponent(schoolName)}&grade=${encodeURIComponent(grade)}&classNumber=${encodeURIComponent(classNumber)}`;
+    const url = `${APPS_SCRIPT_URL}?unit=${encodeURIComponent(unit)}`;
     const response = await fetch(url);
     const data = await response.json();
-    if (data.students) return data.students;
-    return [];
+    return data.students || [];
   } catch (err) {
-    console.warn('Failed to fetch students', err);
     return [];
   }
 }
 
-// تخزين الطلاب محلياً حسب مفتاح (الوحدة+المدرسة+الصف+الفصل)
-function storeStudentsLocally(unit, schoolName, grade, classNumber, students) {
-  const key = `${unit}|${schoolName}|${grade}|${classNumber}`;
-  const allData = JSON.parse(localStorage.getItem('studentsByClass') || '{}');
-  allData[key] = students;
-  localStorage.setItem('studentsByClass', JSON.stringify(allData));
+async function refreshAllStudentsForUnit(unit) {
+  if (!unit) return;
+  if (navigator.onLine) {
+    const students = await fetchAllStudentsFromSheet(unit);
+    localStorage.setItem(`allStudents_${unit}`, JSON.stringify(students));
+  }
+  updateDatalistFromCurrentFilter();
 }
 
-function getStudentsLocally(unit, schoolName, grade, classNumber) {
-  const key = `${unit}|${schoolName}|${grade}|${classNumber}`;
-  const allData = JSON.parse(localStorage.getItem('studentsByClass') || '{}');
-  return allData[key] || [];
+function getAllStudentsLocally(unit) {
+  const data = localStorage.getItem(`allStudents_${unit}`);
+  return data ? JSON.parse(data) : [];
 }
 
-// تحديث قائمة الاقتراحات (datalist) بناءً على الفلتر الحالي
 function updateDatalistFromCurrentFilter() {
   const unit = document.getElementById('unit').value;
   const schoolName = document.getElementById('schoolName').value;
@@ -205,43 +200,43 @@ function updateDatalistFromCurrentFilter() {
     document.getElementById('studentList').innerHTML = '';
     return;
   }
-  const students = getStudentsLocally(unit, schoolName, grade, classNumber);
+  const allStudents = getAllStudentsLocally(unit);
+  const filtered = allStudents.filter(s => 
+    s.schoolName === schoolName && s.grade === grade && s.classNumber == classNumber
+  );
   const datalist = document.getElementById('studentList');
   datalist.innerHTML = '';
-  students.forEach(s => {
+  filtered.forEach(s => {
     const option = document.createElement('option');
     option.value = s.name;
     datalist.appendChild(option);
   });
-  console.log(`Datalist updated with ${students.length} students`);
 }
 
-// عند اختيار اسم من القائمة، نملأ باقي الحقول
 function fillFormFromSelectedName(name) {
   const unit = document.getElementById('unit').value;
   const schoolName = document.getElementById('schoolName').value;
   const grade = document.getElementById('grade').value;
   const classNumber = document.getElementById('classNumber').value;
   if (!unit || !schoolName || !grade || !classNumber) return;
-  const students = getStudentsLocally(unit, schoolName, grade, classNumber);
-  const student = students.find(s => s.name === name);
+  const allStudents = getAllStudentsLocally(unit);
+  const student = allStudents.find(s => 
+    s.name === name && s.schoolName === schoolName && s.grade === grade && s.classNumber == classNumber
+  );
   if (student) {
     document.getElementById('nationalId').value = student.nationalId || '';
     document.getElementById('gender').value = student.gender || '';
     document.getElementById('birthDate').value = student.birthDate || '';
     document.getElementById('parentPhone').value = student.parentPhone || '';
-    // جعل الحقول الأساسية للقراءة فقط
     document.getElementById('nationalId').readOnly = true;
     document.getElementById('gender').readOnly = true;
     document.getElementById('birthDate').readOnly = true;
-    // حقل ولي الأمر: إذا كان موجوداً غير فارغ نجعله للقراءة فقط، وإلا نتركه قابل للتعديل
     if (student.parentPhone && student.parentPhone.trim() !== '') {
       document.getElementById('parentPhone').readOnly = true;
     } else {
       document.getElementById('parentPhone').readOnly = false;
     }
   } else {
-    // اسم جديد غير موجود في القائمة
     document.getElementById('nationalId').value = '';
     document.getElementById('gender').value = '';
     document.getElementById('birthDate').value = '';
@@ -253,21 +248,35 @@ function fillFormFromSelectedName(name) {
   }
 }
 
-// تحديث القائمة من الشيت عند تغيير أي فلتر
-async function refreshStudentList() {
-  const unit = document.getElementById('unit').value;
-  const schoolName = document.getElementById('schoolName').value;
-  const grade = document.getElementById('grade').value;
-  const classNumber = document.getElementById('classNumber').value;
-  if (!unit || !schoolName || !grade || !classNumber) return;
-  if (navigator.onLine) {
-    const students = await fetchStudentsByFilter(unit, schoolName, grade, classNumber);
-    storeStudentsLocally(unit, schoolName, grade, classNumber, students);
-  }
-  updateDatalistFromCurrentFilter();
+// ==================== جلسة التسجيل ====================
+let sessionRecords = [];
+
+function addToSessionLog(studentName, synced = false) {
+  sessionRecords.unshift({ studentName, synced, timestamp: new Date().toLocaleString() });
+  updateSessionLog();
+  localStorage.setItem('sessionLog', JSON.stringify(sessionRecords));
 }
 
-// ==================== دوال الواجهة الأساسية ====================
+function updateSessionLog() {
+  const list = document.getElementById('sessionLogList');
+  if (!list) return;
+  list.innerHTML = '';
+  sessionRecords.forEach(rec => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${rec.studentName}</span> <span class="${rec.synced ? 'synced' : 'pending'}">${rec.synced ? '✅ تم الحفظ' : '⏳ لم يتم الحفظ'}</span>`;
+    list.appendChild(li);
+  });
+}
+
+function loadSessionLog() {
+  const saved = localStorage.getItem('sessionLog');
+  if (saved) {
+    sessionRecords = JSON.parse(saved);
+    updateSessionLog();
+  }
+}
+
+// ==================== دوال الواجهة ====================
 function populateUnits() {
   const unitSelect = document.getElementById('unit');
   unitSelect.innerHTML = '<option value="">-- اختر الوحدة --</option>';
@@ -343,18 +352,17 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     return;
   }
 
-  // إذا كان الطالب موجوداً في القائمة المحلية، نحافظ على البيانات الأساسية (لا نغيرها)
-  const students = getStudentsLocally(unit, schoolName, grade, classNumber);
-  const existing = students.find(s => s.name === studentName);
+  const allStudents = getAllStudentsLocally(unit);
+  const existing = allStudents.find(s => 
+    s.name === studentName && s.schoolName === schoolName && s.grade === grade && s.classNumber == classNumber
+  );
   if (existing) {
     nationalId = existing.nationalId;
     gender = existing.gender;
     birthDate = existing.birthDate;
-    // فقط إذا كان رقم ولي الأمر فارغاً نأخذ القيمة الجديدة
     if (!existing.parentPhone && parentPhone) {
       existing.parentPhone = parentPhone;
-      // تحديث التخزين المحلي
-      storeStudentsLocally(unit, schoolName, grade, classNumber, students);
+      localStorage.setItem(`allStudents_${unit}`, JSON.stringify(allStudents));
     } else {
       parentPhone = existing.parentPhone;
     }
@@ -367,35 +375,81 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
   };
 
   await addPendingRecord({ data: record });
+  addToSessionLog(studentName, false);
 
   if (navigator.onLine) {
     await syncPendingRecords();
     showStatus('✅ تم الحفظ والمزامنة مع Google Sheets', '#d4edda');
-    await refreshStudentList(); // تحديث القائمة بعد الحفظ
+    await refreshAllStudentsForUnit(unit);
+    updateDatalistFromCurrentFilter();
+    sessionRecords = sessionRecords.map(r => ({ ...r, synced: true }));
+    updateSessionLog();
+    localStorage.setItem('sessionLog', JSON.stringify(sessionRecords));
   } else {
     showStatus('📱 غير متصل – تم الحفظ محلياً وسيتم المزامنة تلقائياً', '#fff3cd');
   }
 
-  // مسح حقول القياسات فقط
   document.getElementById('weight').value = '';
   document.getElementById('height').value = '';
   document.getElementById('hemoglobin').value = '';
   document.getElementById('bmiDisplay').innerHTML = '📊 مؤشر كتلة الجسم: ---';
 });
 
-// ==================== ربط الأحداث ====================
-document.getElementById('unit').addEventListener('change', () => {
+// ==================== أزرار أخرى ====================
+document.getElementById('newStudentBtn').addEventListener('click', () => {
+  document.getElementById('studentName').value = '';
+  document.getElementById('nationalId').value = '';
+  document.getElementById('gender').value = '';
+  document.getElementById('birthDate').value = '';
+  document.getElementById('parentPhone').value = '';
+  document.getElementById('weight').value = '';
+  document.getElementById('height').value = '';
+  document.getElementById('hemoglobin').value = '';
+  document.getElementById('bmiDisplay').innerHTML = '📊 مؤشر كتلة الجسم: ---';
+  document.getElementById('nationalId').readOnly = false;
+  document.getElementById('gender').readOnly = false;
+  document.getElementById('birthDate').readOnly = false;
+  document.getElementById('parentPhone').readOnly = false;
+  document.getElementById('studentName').focus();
+});
+
+const modal = document.getElementById('logModal');
+document.getElementById('showLogBtn').addEventListener('click', () => {
+  updateSessionLog();
+  modal.style.display = 'flex';
+});
+document.querySelector('.close').addEventListener('click', () => {
+  modal.style.display = 'none';
+});
+window.addEventListener('click', (e) => {
+  if (e.target === modal) modal.style.display = 'none';
+});
+
+window.addEventListener('beforeunload', (e) => {
+  const pendingRecords = sessionRecords.filter(r => !r.synced);
+  if (pendingRecords.length > 0) {
+    e.preventDefault();
+    e.returnValue = 'هناك بيانات لم يتم حفظها بعد. هل تريد المغادرة؟';
+    return e.returnValue;
+  }
+});
+
+// ==================== أحداث التغيير ====================
+document.getElementById('unit').addEventListener('change', async () => {
   filterSchools();
-  refreshStudentList();
+  const unit = document.getElementById('unit').value;
+  if (unit) {
+    await refreshAllStudentsForUnit(unit);
+    updateDatalistFromCurrentFilter();
+  }
 });
 document.getElementById('schoolType').addEventListener('change', filterSchools);
-document.getElementById('schoolName').addEventListener('change', refreshStudentList);
-document.getElementById('grade').addEventListener('change', refreshStudentList);
-document.getElementById('classNumber').addEventListener('change', refreshStudentList);
+document.getElementById('schoolName').addEventListener('change', updateDatalistFromCurrentFilter);
+document.getElementById('grade').addEventListener('change', updateDatalistFromCurrentFilter);
+document.getElementById('classNumber').addEventListener('change', updateDatalistFromCurrentFilter);
 document.getElementById('studentName').addEventListener('change', (e) => {
   fillFormFromSelectedName(e.target.value);
 });
-// لا نملأ البيانات أثناء الكتابة، فقط عند الاختيار من القائمة
 document.getElementById('weight').addEventListener('input', calculateBMI);
 document.getElementById('height').addEventListener('input', calculateBMI);
 
@@ -403,12 +457,29 @@ document.getElementById('height').addEventListener('input', calculateBMI);
 window.addEventListener('load', async () => {
   await openDB();
   populateUnits();
-  if (navigator.onLine) {
-    window.addEventListener('online', () => {
-      showStatus('🔄 تم الاتصال – جاري المزامنة', '#d1ecf1');
-      syncPendingRecords();
-      refreshStudentList();
-    });
+  loadSessionLog();
+  const unitSelect = document.getElementById('unit');
+  if (unitSelect.value) {
+    await refreshAllStudentsForUnit(unitSelect.value);
+    updateDatalistFromCurrentFilter();
+  }
+  window.addEventListener('online', async () => {
+    showStatus('🔄 تم الاتصال – جاري المزامنة', '#d1ecf1');
     await syncPendingRecords();
+    const pending = await getAllPendingRecords();
+    if (pending.length === 0) {
+      sessionRecords = sessionRecords.map(r => ({ ...r, synced: true }));
+      updateSessionLog();
+      localStorage.setItem('sessionLog', JSON.stringify(sessionRecords));
+    }
+    const unit = document.getElementById('unit').value;
+    if (unit) await refreshAllStudentsForUnit(unit);
+    updateDatalistFromCurrentFilter();
+  });
+  if (navigator.onLine) {
+    await syncPendingRecords();
+    const unit = document.getElementById('unit').value;
+    if (unit) await refreshAllStudentsForUnit(unit);
+    updateDatalistFromCurrentFilter();
   }
 });
